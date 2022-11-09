@@ -34,9 +34,17 @@ async function run() {
         })
 
         //reviews api
-        app.get('/reviews/:serviceID', async (req, res) => {
+        app.get('/service-reviews/:serviceID', async (req, res) => {
             const serviceID = req.params.serviceID;
             const query = { service_id: serviceID };
+            const cursor = reviewsCollection.find(query).sort({ review_date: -1 });
+            const reviews = await cursor.toArray();
+            res.send(reviews);
+        })
+
+        app.get('/user-reviews/:userID', async (req, res) => {
+            const userID = req.params.userID;
+            const query = { 'reviewer_info.userID': userID };
             const cursor = reviewsCollection.find(query).sort({ review_date: -1 });
             const reviews = await cursor.toArray();
             res.send(reviews);
