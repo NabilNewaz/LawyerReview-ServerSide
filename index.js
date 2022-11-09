@@ -33,6 +33,7 @@ async function run() {
             res.send(service);
         })
 
+        //reviews api
         app.get('/reviews/:id', async (req, res) => {
             const id = req.params.id;
             const query = { service_id: id };
@@ -40,6 +41,13 @@ async function run() {
             const reviews = await cursor.toArray();
             res.send(reviews);
         })
+
+        app.post('/reviews', async (req, res) => {
+            const review = req.body;
+            const result = await reviewsCollection.insertOne(review);
+            res.send(result);
+        })
+
     }
     finally {
 
