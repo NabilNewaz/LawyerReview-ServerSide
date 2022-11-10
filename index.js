@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const app = express();
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -13,10 +14,31 @@ app.use(express.json());
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.zusdhlj.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+function verifyJWT(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).send({ message: 'unauthorized access' });
+    }
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+        if (err) {
+            return res.status(401).send({ message: 'unauthorized access' });
+        }
+        req.decoded = decoded;
+        next();
+    });
+}
+
 async function run() {
     try {
         const serviceCollection = client.db('lawyerReview').collection('services');
         const reviewsCollection = client.db('lawyerReview').collection('reviews');
+
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+            res.send({ token });
+        })
 
         app.get('/services', async (req, res) => {
             const dataSize = req.query.datasize;
@@ -48,8 +70,12 @@ async function run() {
             res.send(reviews);
         })
 
-        app.get('/user-reviews/:userID', async (req, res) => {
+        app.get('/user-reviews/:userID', verifyJWT, async (req, res) => {
+            const decoded = req.decoded;
             const userID = req.params.userID;
+            if (decoded.uid !== userID) {
+                res.status(403).send({ message: 'unauthorized access' });
+            }
             const query = { 'reviewer_info.userID': userID };
             const cursor = reviewsCollection.find(query).sort({ review_date: -1 });
             const reviews = await cursor.toArray();
@@ -65,7 +91,6 @@ async function run() {
         app.patch('/reviews/:id', async (req, res) => {
             const id = req.params.id;
             const updateReviewData = req.body;
-            console.log(updateReviewData)
             const query = { _id: ObjectId(id) };
             const updatedReview = {
                 $set: updateReviewData
