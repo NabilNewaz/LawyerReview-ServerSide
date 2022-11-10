@@ -100,6 +100,30 @@ async function run() {
             res.send(result);
         })
 
+        app.patch('/reviews-help/:id', async (req, res) => {
+            const id = req.params.id;
+            const updateHelpData = req.body;
+            const query = { _id: ObjectId(id) };
+            const updatedHelp = {
+                $inc: updateHelpData
+
+            }
+            const result = await reviewsCollection.updateOne(query, updatedHelp);
+            res.send(result);
+        })
+
+        app.patch('/reviews-abuse/:id', async (req, res) => {
+            const id = req.params.id;
+            const updateAbuseData = req.body;
+            const query = { _id: ObjectId(id) };
+            const updatedAbuse = {
+                $inc: updateAbuseData
+
+            }
+            const result = await reviewsCollection.updateOne(query, updatedAbuse);
+            res.send(result);
+        })
+
         app.delete('/reviews/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
